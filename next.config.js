@@ -10,7 +10,7 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   experimental: {
-    serverComponentsExternalPackages: ["mammoth", "pdf-parse"],
+    serverExternalPackages: ["mammoth", "pdf-parse"],
   },
   webpack: (config, { isServer }) => {
     // Resolve the @/ alias to project root
