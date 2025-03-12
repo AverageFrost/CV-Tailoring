@@ -46,10 +46,8 @@
     "lib/utils.js",
     "lib/netlifyUtils.js"
   ]
-  # Explicitly define function size limits
-  function_bundle_size_mbs = 50  # Limit each function to 50MB to stay well under the 250MB limit
 
-# Specific function configurations
+# Specific function configurations with size limits
 [functions.index]
   # Keep the index function extremely minimal
   external_node_modules = ["*"]
