@@ -22,20 +22,6 @@
 
 [functions]
   node_bundler = "esbuild"
-  # Configure esbuild to be more aggressive about tree-shaking
-  # Exclude all these directories from functions
-  excluded_patterns = [
-    "node_modules/@next/swc-*/**",
-    "node_modules/.pnpm/**",
-    "node_modules/.bin/**",
-    "node_modules/**/test/**",
-    "node_modules/**/*.d.ts",
-    "node_modules/**/*.md",
-    "**/node_modules/typescript/**",
-    "**/@types/**",
-    "**/*.map",
-    ".next/cache/**"
-  ]
   # Only mark these as external - they won't be bundled
   external_node_modules = [
     "mammoth", 
