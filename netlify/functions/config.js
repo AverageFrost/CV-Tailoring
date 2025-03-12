@@ -1,16 +1,31 @@
-// Configuration for Netlify functions
+/**
+ * Minimal configuration file for Netlify functions.
+ * This file is kept as small as possible to stay under size limits.
+ */
+
+// Export only the essential configuration
 module.exports = {
-  // These modules will be marked as externals and not bundled
+  // List of modules that should be externalized and not bundled
   externalModules: [
-    'mammoth',
-    'pdf-parse',
-    '@next/font',
-    'next',
-    'react',
-    'react-dom',
-    'sharp'
+    // Core dependencies
+    'next', 'react', 'react-dom',
+    
+    // Document processing libraries
+    'mammoth', 'pdf-parse',
+    
+    // UI component libraries
+    '@radix-ui/react-dropdown-menu',
+    '@radix-ui/react-scroll-area',
+    '@radix-ui/react-tabs',
+    '@radix-ui/react-tooltip',
+    'framer-motion',
+    
+    // Utility libraries
+    'date-fns',
+    'zod'
   ],
-  // Helper function to dynamically import externalized modules
+  
+  // Dynamic import helper - minimal version
   dynamicImport: async (moduleName) => {
     try {
       return await import(moduleName);

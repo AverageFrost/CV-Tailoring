@@ -1,6 +1,7 @@
 [build]
   command = "npm ci && npm run build:next && npm run postbuild"
-  publish = ".next"
+  publish = ".next/standalone"
+  ignore = "git diff --quiet HEAD^ HEAD . ':(exclude)netlify.toml'"
 
 [build.environment]
   NODE_VERSION = "18.18.0"
@@ -21,8 +22,10 @@
   framework = "next"
 
 [functions]
+  # Set the directory of the functions
+  directory = "netlify/functions"
   node_bundler = "esbuild"
-  # Only mark these as external - they won't be bundled
+  # External modules - these won't be bundled
   external_node_modules = [
     "mammoth", 
     "pdf-parse",
@@ -43,36 +46,45 @@
     "embla-carousel-react",
     "react-day-picker",
     "zod",
-    "lucide-react"
+    "lucide-react",
+    "@anthropic-ai/sdk",
+    "anthropic"
   ]
-  # Be very selective about which files to include
+  # Only include essential files
   included_files = [
-    "public/**/*",
-    "app/**/*.{js,ts,jsx,tsx}",
-    "pages/**/*.{js,ts,jsx,tsx}",
-    "lib/**/*.{js,ts,jsx,tsx}",
-    "components/**/*.{js,ts,jsx,tsx}",
-    "next.config.js",
-    "package.json",
-    "utils/**/*.{js,ts}"
+    "netlify/functions/**/*.js",
+    "app/api/**/*.js",
+    "lib/utils.js",
+    "lib/netlifyUtils.js"
   ]
 
-# Increase the timeout for API routes to maximum allowed
+# Specific function configurations
+[functions.index]
+  # Keep the index function extremely minimal
+  external_node_modules = ["*"]
+  included_files = ["netlify/functions/index.js", "netlify/functions/implementation.js"]
+
+[functions.config]
+  # Keep the config function extremely minimal
+  external_node_modules = ["*"]
+  included_files = ["netlify/functions/config.js"]
+
+# Configure API functions with minimal included files
 [functions."api/analyze"]
   included_files = [
-    "app/api/analyze/**/*.{js,ts}",
-    "app/api/utils/**/*.{js,ts}",
-    "lib/netlifyUtils*.{js,ts}", 
-    "lib/utils*.{js,ts}"
+    "app/api/analyze/route.js",
+    "app/api/utils/**/*.js",
+    "lib/netlifyUtils.js", 
+    "lib/utils.js"
   ]
   timeout = 26
 
 [functions."api/upload"]
   included_files = [
-    "app/api/upload/**/*.{js,ts}",
-    "app/api/utils/**/*.{js,ts}",
-    "lib/netlifyUtils*.{js,ts}", 
-    "lib/utils*.{js,ts}"
+    "app/api/upload/route.js",
+    "app/api/utils/**/*.js",
+    "lib/netlifyUtils.js", 
+    "lib/utils.js"
   ]
   timeout = 26
 
@@ -86,7 +98,7 @@
 # Configure redirects
 [[redirects]]
   from = "/api/*"
-  to = "/.netlify/functions/api/:splat"
+  to = "/.netlify/functions/index/:splat"
   status = 200
   force = true
 

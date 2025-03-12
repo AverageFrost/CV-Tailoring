@@ -1,25 +1,34 @@
-// This file is a placeholder to ensure the netlify/functions directory is included in the build
-// It helps with Next.js API routes being properly bundled for Netlify Functions
+/**
+ * Minimal Netlify Function Entry Point
+ * This file is designed to be as small as possible to stay under size limits.
+ * All actual functionality is implemented in separate modules.
+ */
 
-// Re-export utility modules to make them available to Netlify functions
-exports.loadNetlifyUtils = () => {
-  try {
-    return require('../../lib/netlifyUtils');
-  } catch (e) {
-    console.error('Error loading netlifyUtils from lib:', e);
-    try {
-      return require('../../app/api/utils/netlifyUtils');
-    } catch (e2) {
-      console.error('Error loading netlifyUtils from app/api/utils:', e2);
-      return null;
-    }
-  }
-};
-
-// Export a dummy handler for direct invocation
+// Export a handler that will dynamically load the actual implementation
 exports.handler = async (event, context) => {
-  return {
-    statusCode: 200,
-    body: JSON.stringify({ message: 'This is a utility function module' })
-  };
+  try {
+    console.log("Function invoked with method:", event.httpMethod, "and path:", event.path);
+    
+    // Load the actual implementation only when needed
+    // Using dynamic import to avoid bundling everything upfront
+    const implementation = await import('./implementation.js')
+      .catch(error => {
+        console.error("Error loading implementation:", error);
+        return { 
+          handler: () => ({ 
+            statusCode: 500, 
+            body: JSON.stringify({ error: "Internal server error - failed to load implementation" }) 
+          })
+        };
+      });
+
+    // Call the actual implementation
+    return implementation.handler(event, context);
+  } catch (error) {
+    console.error("Error in function handler:", error);
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: "Internal server error" }),
+    };
+  }
 }; 

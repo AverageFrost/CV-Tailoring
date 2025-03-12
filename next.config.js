@@ -43,7 +43,14 @@ const nextConfig = {
         'clsx',
         'tailwind-merge',
         'sonner',
-        'vaul'
+        'vaul',
+        // Add more to externalize
+        '@anthropic-ai/sdk',
+        'anthropic',
+        'formidable',
+        'fs-extra',
+        'uuid',
+        'critters'
       ];
     }
 
@@ -53,6 +60,11 @@ const nextConfig = {
       include: /node_modules/,
       exclude: /\.(d\.ts|map)$/,
     });
+
+    // Minimize code size 
+    if (config.optimization && isServer) {
+      config.optimization.minimize = true;
+    }
 
     return config;
   },
@@ -78,7 +90,11 @@ const nextConfig = {
       'recharts',
       'sonner',
       'vaul'
-    ]
+    ],
+    // Disable features that increase bundle size
+    serverMinification: true,
+    serverSourceMaps: false,
+    forceSwcTransforms: true
   }
 }
 
