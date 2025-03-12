@@ -59,10 +59,11 @@ const nextConfig = {
   // Optimize output for serverless deployment
   output: 'standalone',
   
+  // Move outputFileTracingRoot to top level as recommended in the error message
+  outputFileTracingRoot: process.env.NODE_ENV === 'production' ? '.' : undefined,
+  
   // Minimize the size of the build output
   experimental: {
-    // Reduce chunk size
-    outputFileTracingRoot: process.env.NODE_ENV === 'production' ? './' : undefined,
     // Remove server code from client bundles
     optimizeCss: true,
     // Only include required polyfills
