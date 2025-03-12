@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { extractTextFromFile, getSessionFiles } from '@/lib/documentUtils';
-import path from 'path';
+import { getFiles, storeResults, extractTextFromBuffer, sessionExists } from '@/lib/netlifyUtils';
 import Anthropic from '@anthropic-ai/sdk';
 
 // Initialize Anthropic client
@@ -76,60 +75,31 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    // Get files from the session
-    let sessionFiles;
-    try {
-      // Check for cancellation before file operation
-      if (signal.aborted) {
-        console.log('Request cancelled before retrieving session files');
-        return NextResponse.json(
-          { error: 'Request cancelled' },
-          { status: 499, headers }
-        );
-      }
-      
-      sessionFiles = await getSessionFiles(sessionId);
-      
-      if (!sessionFiles.success || !sessionFiles.files) {
-        return NextResponse.json(
-          { error: 'Session not found or expired' },
-          { status: 404, headers }
-        );
-      }
-    } catch (sessionError) {
-      console.error('Error retrieving session files:', sessionError);
+    // Check if session exists
+    if (!sessionExists(sessionId)) {
+      console.error('Session not found:', sessionId);
       return NextResponse.json(
-        { error: 'Failed to retrieve session files' },
-        { status: 500, headers }
+        { error: 'Session not found or expired' },
+        { status: 404, headers }
       );
     }
     
-    console.log('Files in session directory:', sessionFiles.files);
+    // Get files from the session
+    const sessionData = getFiles(sessionId);
     
-    // Find CV and job description files
-    let cvFile = sessionFiles.files.find((file) => 
-      file.toLowerCase().includes('cv') || 
-      (!file.toLowerCase().includes('job') && !file.toLowerCase().includes('description'))
-    );
-    
-    let jobFile = sessionFiles.files.find((file) => 
-      file.toLowerCase().includes('job') || 
-      file.toLowerCase().includes('description')
-    );
-    
-    if (!cvFile || !jobFile) {
-      console.error('Required files not found. CV file:', cvFile, 'Job file:', jobFile);
+    // Check if we have the required files
+    if (!sessionData.cvBuffer || (!sessionData.jobDescriptionBuffer && !sessionData.jobDescriptionText)) {
+      console.error('Missing required files in session');
       return NextResponse.json(
         { error: 'Required files not found in session' },
         { status: 400, headers }
       );
     }
     
-    console.log('Found CV file:', cvFile);
-    console.log('Found job description file:', jobFile);
+    // Extract text from files
+    let cvText = '';
+    let jobText = '';
     
-    // Extract text from both files
-    let cvText, jobText;
     try {
       // Check for cancellation before text extraction
       if (signal.aborted) {
@@ -140,8 +110,17 @@ export async function POST(request: NextRequest) {
         );
       }
       
-      cvText = await extractTextFromFile(path.join(sessionFiles.directory, cvFile));
-      jobText = await extractTextFromFile(path.join(sessionFiles.directory, jobFile));
+      // Extract CV text
+      if (sessionData.cvBuffer && sessionData.cvFileName) {
+        cvText = await extractTextFromBuffer(sessionData.cvBuffer, sessionData.cvFileName);
+      }
+      
+      // Extract job description text
+      if (sessionData.jobDescriptionBuffer && sessionData.jobDescriptionFileName) {
+        jobText = await extractTextFromBuffer(sessionData.jobDescriptionBuffer, sessionData.jobDescriptionFileName);
+      } else if (sessionData.jobDescriptionText) {
+        jobText = sessionData.jobDescriptionText;
+      }
       
       console.log('CV text length:', cvText.length);
       console.log('Job description text length:', jobText.length);
@@ -206,7 +185,7 @@ export async function POST(request: NextRequest) {
 
 When generating a revised CV, maintain a balance between comprehensiveness and conciseness targeting a similar total word count for each CV section of the existing CV. Ensure the candidate's experience is framed to directly support their candidacy for the target role outlined in the job description.`;
 
-      // Also update the user message to include the new instruction about not injecting markups
+      // User message template
       const userMessageTmpl = `You are an AI recruitment assistant tasked with tailoring a CV (Curriculum Vitae) to a specific job description. This task is crucial for helping job seekers increase their chances of securing an interview by highlighting relevant skills and experiences that match the job requirements.
 
 First, carefully read and analyze the following CV:
@@ -250,11 +229,13 @@ Remember to maintain professionalism and accuracy throughout the tailoring proce
         .replace('{{CV}}', cvText)
         .replace('{{JOB_DESCRIPTION}}', jobText);
 
-      // Call Anthropic API with the abort signal
+      // Make the API call
+      console.log('Sending request to Anthropic API...');
+      
       const response = await anthropic.messages.create({
-        model: "claude-3-5-haiku-20241022",
-        max_tokens: 8192,
-        temperature: 0.9,
+        model: "claude-3-haiku-20240307",
+        max_tokens: 4000,
+        temperature: 0.3,
         system: systemPrompt,
         messages: [
           {
@@ -262,135 +243,116 @@ Remember to maintain professionalism and accuracy throughout the tailoring proce
             content: userMessage
           }
         ]
-      }, { signal }); // Pass the signal to the Anthropic client
+      });
       
       console.log('Received response from Anthropic API');
       
-      // Extract the tailored CV and explanation from response
-      const responseText = response.content[0].type === 'text' 
-        ? response.content[0].text 
-        : '';
+      // Process the response
+      const responseContent = response.content[0];
+      const responseText = responseContent.type === 'text' ? responseContent.text : '';
       
-      let tailoredCV = '';
-      let improvements: Array<{category: string, details: string[]}> = [];
-      let explanation = '';
+      // Extract the updated CV and explanation
+      const updatedCV = extractContentBetweenTags(responseText, 'updated_cv');
+      const explanation = extractContentBetweenTags(responseText, 'explanation');
       
-      // Extract the updated CV
-      const cvMatch = /<updated_cv>([\s\S]*?)<\/updated_cv>/i.exec(responseText);
-      if (cvMatch && cvMatch[1]) {
-        tailoredCV = cvMatch[1].trim();
-      } else {
-        // If no tags, try to extract the CV portion of the response
-        tailoredCV = responseText.split('<explanation>')[0].trim();
-      }
+      // Parse improvements from the explanation
+      const improvements = extractImprovements(explanation);
       
-      // Extract the explanation
-      const explanationMatch = /<explanation>([\s\S]*?)<\/explanation>/i.exec(responseText);
-      if (explanationMatch && explanationMatch[1]) {
-        explanation = explanationMatch[1].trim();
-        
-        // Parse the explanation into improvement categories
-        const sections = explanation.split(/\n\n|\r\n\r\n/);
-        
-        sections.forEach(section => {
-          if (section.trim()) {
-            const lines = section.split(/\n|\r\n/);
-            if (lines.length > 0) {
-              const category = lines[0].replace(/^[\d\.\s-]*/, '').trim();
-              const details = lines.slice(1).map(line => 
-                line.trim().replace(/^[\-\*\•\s]+/, '')
-              ).filter(line => line.length > 0);
-              
-              if (category && details.length > 0) {
-                improvements.push({ category, details });
-              }
-            }
-          }
-        });
-        
-        // If we couldn't parse the explanation into categories, create a single category
-        if (improvements.length === 0 && explanation) {
-          improvements = [
-            {
-              category: "CV Improvements",
-              details: explanation.split(/\n|\r\n/).filter(line => line.trim().length > 0)
-            }
-          ];
-        }
-      }
-      
-      // If we still don't have improvements, create default categories
-      if (improvements.length === 0) {
-        improvements = [
-          {
-            category: "Skills Emphasized",
-            details: ["Key skills aligned with job requirements", "ATS-friendly keywords added"]
-          },
-          {
-            category: "Experience Highlighted",
-            details: ["Relevant experience prioritized", "Achievements quantified where possible"]
-          },
-          {
-            category: "Structure Optimized",
-            details: ["CV structure maintained but content prioritized for this role"]
-          }
-        ];
-      }
-      
-      // Format for UI display
-      const uiContent = {
-        sessionId,
+      // Store the results in memory
+      const analysisResults = {
+        originalCV: cvText,
         jobDescription: jobText,
-        tailoredCV: tailoredCV,
-        improvements: improvements
+        tailoredCV: updatedCV || responseText,
+        improvements: improvements || [],
+        explanation: explanation || 'No detailed explanation provided.',
       };
       
-      // Return the response with explicit JSON headers
-      return NextResponse.json(uiContent, { headers });
+      console.log('Analysis complete, storing results');
+      storeResults(sessionId, analysisResults);
       
-    } catch (apiError: any) {
-      console.error('Error calling Anthropic API:', apiError);
+      return NextResponse.json(analysisResults, { headers });
+    } catch (anthropicError: any) {
+      console.error('Error calling Anthropic API:', anthropicError);
       
-      // Check if this is an abort error
-      if (apiError.name === 'AbortError' || signal.aborted) {
-        console.log('Anthropic API call was aborted by client');
-        return NextResponse.json(
-          { error: 'Request cancelled by user' },
-          { status: 499, headers }
-        );
-      }
-      
-      // Create fallback response using the original CV
-      const fallbackData = {
-        sessionId,
-        jobDescription: jobText,
-        tailoredCV: cvText,
-        improvements: [
-          {
-            category: "API Error",
-            details: ["An error occurred while tailoring your CV. Using original CV content instead."]
-          }
-        ]
-      };
-      
-      return NextResponse.json(fallbackData, { headers });
-    }
-    
-  } catch (error: any) {
-    console.error('Analysis error:', error);
-    
-    // Check if this is an abort error
-    if (error.name === 'AbortError' || signal.aborted) {
-      console.log('Request was aborted by client');
+      // Detailed error response
       return NextResponse.json(
-        { error: 'Request cancelled by user' },
-        { status: 499, headers }
+        { 
+          error: 'Failed to analyze CV and job description',
+          message: anthropicError.message || 'Unknown error',
+          status: 503,
+          details: anthropicError.response?.data?.error || 'Service unavailable'
+        },
+        { status: 503, headers }
       );
     }
+  } catch (error: any) {
+    console.error('General error in analyze endpoint:', error);
     
+    // General error handling
     return NextResponse.json(
-      { error: 'Failed to analyze documents', message: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500, headers }
+      { 
+        error: 'Analysis failed',
+        message: error.message || 'Unknown error',
+        status: error.status || 500
+      },
+      { status: error.status || 500, headers }
     );
   }
+}
+
+// Helper function to extract content between tags
+function extractContentBetweenTags(text: string, tagName: string): string | null {
+  const regex = new RegExp(`<${tagName}>(.*?)</${tagName}>`, 's');
+  const match = text.match(regex);
+  return match ? match[1].trim() : null;
+}
+
+// Helper function to extract improvements from explanation
+function extractImprovements(explanation: string | null): string[] {
+  if (!explanation) return [];
+  
+  // Look for numbered lists, bullet points, or keywords like "improvements" or "changes"
+  const points: string[] = [];
+  
+  // Split by newlines and look for patterns
+  const lines = explanation.split('\n');
+  
+  let inList = false;
+  
+  for (const line of lines) {
+    const trimmedLine = line.trim();
+    
+    // Check if line starts with a number or bullet
+    if (/^\d+[\.\)]\s+/.test(trimmedLine) || /^[\-\*•]\s+/.test(trimmedLine)) {
+      inList = true;
+      points.push(trimmedLine);
+    }
+    // If we're in a list and this line is indented, it's likely a continuation
+    else if (inList && line.startsWith('  ')) {
+      // Append to the previous point
+      if (points.length > 0) {
+        points[points.length - 1] += ' ' + trimmedLine;
+      }
+    }
+    // If line contains keywords but isn't a list item
+    else if (
+      (trimmedLine.toLowerCase().includes('improvement') || 
+       trimmedLine.toLowerCase().includes('change') ||
+       trimmedLine.toLowerCase().includes('update') ||
+       trimmedLine.toLowerCase().includes('modify')) &&
+      trimmedLine.length < 100 // Not too long
+    ) {
+      points.push(trimmedLine);
+    }
+    else {
+      inList = false;
+    }
+  }
+  
+  // If we couldn't extract specific points, create a generic entry
+  if (points.length === 0 && explanation) {
+    points.push('Tailored CV to better match job requirements');
+  }
+  
+  return points;
 }

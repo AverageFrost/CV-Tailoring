@@ -94,7 +94,12 @@ export default function Home() {
       })
       
       if (!uploadResponse.ok) {
-        const errorData = await uploadResponse.json()
+        let errorData;
+        try {
+          errorData = await uploadResponse.json();
+        } catch (e) {
+          throw new Error(`Failed to upload files: ${uploadResponse.status} ${uploadResponse.statusText}`);
+        }
         throw new Error(errorData.error || 'Failed to upload files')
       }
       
@@ -124,27 +129,55 @@ export default function Home() {
       })
       
       if (!analyzeResponse.ok) {
-        const errorText = await analyzeResponse.text()
-        console.error('Analysis API error response:', errorText)
-        
+        let errorMessage = `Analysis failed with status: ${analyzeResponse.status}`;
         try {
-          const errorData = JSON.parse(errorText)
-          throw new Error(errorData.error || 'Analysis failed')
+          const errorData = await analyzeResponse.json();
+          if (errorData.error) {
+            errorMessage = errorData.error;
+          }
+          if (errorData.message) {
+            errorMessage += `: ${errorData.message}`;
+          }
+          if (errorData.details) {
+            errorMessage += ` (${errorData.details})`;
+          }
+          console.error('Analysis API error details:', errorData);
         } catch (parseError) {
-          throw new Error('Analysis failed with status: ' + analyzeResponse.status)
+          console.error('Error parsing error response:', parseError);
         }
+        throw new Error(errorMessage);
       }
       
       const analyzeData = await analyzeResponse.json()
       
-      // Verify the required fields are present
-      if (!analyzeData || !analyzeData.jobDescription || !analyzeData.tailoredCV || !Array.isArray(analyzeData.improvements)) {
-        console.error('Invalid data structure received:', analyzeData)
-        throw new Error('Server returned invalid data structure')
+      // Verify the required fields are present with more detailed validation
+      if (!analyzeData) {
+        throw new Error('Server returned empty response')
+      }
+      
+      if (!analyzeData.jobDescription) {
+        console.error('Missing jobDescription in response')
+      }
+      
+      if (!analyzeData.tailoredCV) {
+        console.error('Missing tailoredCV in response')
+      }
+      
+      if (!Array.isArray(analyzeData.improvements)) {
+        console.error('Missing or invalid improvements array in response')
+        analyzeData.improvements = ['CV has been tailored to match the job description']
+      }
+      
+      // Ensure we have a valid data structure even if some parts are missing
+      const validatedData = {
+        ...analyzeData,
+        jobDescription: analyzeData.jobDescription || 'Job description content unavailable',
+        tailoredCV: analyzeData.tailoredCV || 'Tailored CV content unavailable',
+        improvements: Array.isArray(analyzeData.improvements) ? analyzeData.improvements : ['CV has been tailored to match the job description'],
       }
       
       // Store the analysis results in sessionStorage
-      sessionStorage.setItem('analysisResults', JSON.stringify(analyzeData))
+      sessionStorage.setItem('analysisResults', JSON.stringify(validatedData))
       
       // Navigate to the results page
       router.push("/results")
@@ -159,12 +192,14 @@ export default function Home() {
       // Don't show error message if the request was cancelled by user
       if (error.name === 'AbortError' || error.message === 'Cancelled by user') {
         setErrorMessage('Processing cancelled')
-        setShowErrorBanner(true)
+      } else if (error.message.includes('503')) {
+        // Special handling for service unavailable errors
+        setErrorMessage('The CV tailoring service is temporarily unavailable. This could be due to high demand or server maintenance. Please try again in a few minutes.')
       } else {
         setErrorMessage(error instanceof Error ? error.message : 'Failed to process your request')
-        setShowErrorBanner(true)
       }
       
+      setShowErrorBanner(true)
       setIsUploading(false)
       setIsProcessing(false)
     } finally {

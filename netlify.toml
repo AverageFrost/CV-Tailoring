@@ -1,0 +1,38 @@
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "18"
+  NEXT_TELEMETRY_DISABLED = "1"
+
+[dev]
+  framework = "next"
+
+[functions]
+  node_bundler = "esbuild"
+  external_node_modules = ["mammoth", "pdf-parse"]
+  included_files = ["node_modules/**", "temp/**"]
+
+# Increase the timeout for API routes to maximum allowed
+[functions."api/analyze"]
+  included_files = ["node_modules/**", "temp/**"]
+  timeout = 26
+
+[functions."api/upload"]
+  included_files = ["node_modules/**", "temp/**"]
+  timeout = 26
+
+# Add deploy context configuration
+[context.production]
+  environment = { NODE_ENV = "production" }
+
+[context.deploy-preview]
+  environment = { NODE_ENV = "production" }
+
+# Configure redirects
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/api/:splat"
+  status = 200
+  force = true 
