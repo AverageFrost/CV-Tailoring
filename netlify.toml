@@ -15,12 +15,14 @@
   # Remove export setting - using server-side rendering instead
   # NEXT_EXPORT = "true"
 
-# Explicitly enable the Next.js plugin with specific settings
+# Explicitly enable the Next.js plugin
 [[plugins]]
   package = "@netlify/plugin-nextjs"
-  # Required for standalone output mode
-  [plugins.inputs]
-    includeFiles = [".next/standalone/**", ".next/static/**"]
+
+# Ensure static files can be found
+[[edge_functions]]
+  path = "/*"
+  function = "next-dev"
 
 [build.processing]
   skip_processing = false

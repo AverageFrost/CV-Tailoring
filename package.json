@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "npm ci && npm run build:next",
     "build:next": "next build",
-    "postbuild": "node ./scripts/optimize-functions.js && node ./scripts/fix-netlify-files.js && cp server.js .next/standalone/",
+    "postbuild": "node ./scripts/optimize-functions.js && node ./scripts/fix-netlify-files.js && cp server.js .next/standalone/ && cp -r .next/static .next/standalone/.next/",
     "start": "node server.js",
     "lint": "next lint"
   },
