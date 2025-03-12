@@ -69,7 +69,7 @@ const nextConfig = {
     return config;
   },
   // Optimize output for serverless deployment
-  output: 'standalone',
+  // output: 'standalone',  // Comment this out to use standard Next.js build
   
   // Move outputFileTracingRoot to top level as recommended in the error message
   outputFileTracingRoot: process.env.NODE_ENV === 'production' ? '.' : undefined,

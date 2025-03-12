@@ -1,6 +1,6 @@
 [build]
   command = "npm ci && npm run build:next && npm run postbuild"
-  publish = ".next/standalone"
+  publish = ".next"
   ignore = "git diff --quiet HEAD^ HEAD . ':(exclude)netlify.toml'"
 
 [build.environment]
@@ -19,10 +19,10 @@
 [[plugins]]
   package = "@netlify/plugin-nextjs"
 
-# Ensure static files can be found
-[[edge_functions]]
-  path = "/*"
-  function = "next-dev"
+# Remove edge functions section
+# [[edge_functions]]
+#   path = "/*"
+#   function = "next-dev"
 
 [build.processing]
   skip_processing = false

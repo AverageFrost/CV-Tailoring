@@ -6,8 +6,8 @@
     "dev": "next dev",
     "build": "npm ci && npm run build:next",
     "build:next": "next build",
-    "postbuild": "node ./scripts/optimize-functions.js && node ./scripts/fix-netlify-files.js && cp server.js .next/standalone/ && cp -r .next/static .next/standalone/.next/",
-    "start": "node server.js",
+    "postbuild": "node ./scripts/optimize-functions.js && node ./scripts/fix-netlify-files.js",
+    "start": "next start",
     "lint": "next lint"
   },
   "dependencies": {
@@ -61,6 +61,7 @@
     "next-themes": "^0.4.4",
     "pdf-parse": "^1.1.1",
     "postcss": "^8",
+    "prismic-javascript": "^3.0.2",
     "react": "^18.2.0",
     "react-day-picker": "8.10.1",
     "react-dom": "^18.2.0",
