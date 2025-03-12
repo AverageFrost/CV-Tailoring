@@ -1,6 +1,6 @@
 [build]
   command = "npm ci && npm run build:next && npm run postbuild"
-  publish = ".next/standalone"
+  publish = ".next"
   ignore = "git diff --quiet HEAD^ HEAD . ':(exclude)netlify.toml'"
 
 [build.environment]
@@ -12,7 +12,12 @@
   NETLIFY_USE_ESBUILD = "true"
   # Tell the build to skip unnecessary work
   NEXT_SKIP_TYPECHECK = "true"
-  NEXT_EXPORT = "true"
+  # Remove NEXT_EXPORT since we're using the Next.js plugin
+  # NEXT_EXPORT = "true"
+
+# Explicitly enable the Next.js plugin
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
 
 [build.processing]
   skip_processing = false

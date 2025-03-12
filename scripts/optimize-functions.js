@@ -11,12 +11,10 @@ const stat = promisify(fs.stat);
 const rm = promisify(fs.rm);
 const mkdir = promisify(fs.mkdir);
 
-// Key directories to check
+// Key directories to check - REMOVED .next directories to avoid interfering with Next.js plugin
 const DIRECTORIES = [
   '.netlify/functions',
-  'netlify/functions',
-  '.next/server/pages/api',
-  '.next/server/app/api'
+  'netlify/functions'
 ];
 
 // File extensions to clean up
@@ -71,6 +69,13 @@ function formatSize(bytes) {
 async function cleanDirectory(dir) {
   try {
     console.log(`🧹 Cleaning directory: ${dir}`);
+
+    // Skip cleaning .next directory to avoid breaking Next.js plugin
+    if (dir.includes('.next')) {
+      console.log(`⚠️ Skipping clean of ${dir} to preserve Next.js build artifacts`);
+      return;
+    }
+
     const files = await readdir(dir);
     
     for (const file of files) {
