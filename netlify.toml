@@ -1,5 +1,5 @@
 [build]
-  command = "npm ci && npm install -g postcss tailwindcss && npm run build:next"
+  command = "npm ci && npm run build:next"
   publish = ".next"
 
 [build.environment]
@@ -20,16 +20,49 @@
 
 [functions]
   node_bundler = "esbuild"
-  external_node_modules = ["mammoth", "pdf-parse"]
-  included_files = ["node_modules/**", "temp/**"]
+  # Only mark these as external - they won't be bundled
+  external_node_modules = [
+    "mammoth", 
+    "pdf-parse",
+    "@next/font",
+    "next",
+    "react",
+    "react-dom",
+    "sharp"
+  ]
+  # Be more selective about which files to include
+  included_files = [
+    "public/**",
+    "app/**/*.{js,ts,jsx,tsx}",
+    "pages/**/*.{js,ts,jsx,tsx}",
+    "lib/**/*.{js,ts,jsx,tsx}",
+    "components/**/*.{js,ts,jsx,tsx}",
+    "next.config.js",
+    "package.json",
+    "jsconfig.json",
+    "tsconfig.json",
+    ".env",
+    ".env.production",
+    ".env.local"
+  ]
 
 # Increase the timeout for API routes to maximum allowed
 [functions."api/analyze"]
-  included_files = ["node_modules/**", "temp/**"]
+  included_files = [
+    "app/api/analyze/**",
+    "app/api/utils/**",
+    "lib/netlifyUtils*", 
+    "lib/utils*"
+  ]
   timeout = 26
 
 [functions."api/upload"]
-  included_files = ["node_modules/**", "temp/**"]
+  included_files = [
+    "app/api/upload/**",
+    "app/api/utils/**",
+    "lib/netlifyUtils*", 
+    "lib/utils*"
+  ]
   timeout = 26
 
 # Add deploy context configuration

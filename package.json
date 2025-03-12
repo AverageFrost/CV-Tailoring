@@ -6,6 +6,7 @@
     "dev": "next dev",
     "build": "npm ci && npm run build:next",
     "build:next": "next build",
+    "postbuild": "node ./scripts/optimize-functions.js",
     "start": "next start",
     "lint": "next lint"
   },

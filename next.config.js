@@ -16,8 +16,19 @@ const nextConfig = {
       ...config.resolve.alias,
       '@': '.',
     };
+
+    // Optimize bundle size by excluding large dependencies from the bundle
+    if (isServer) {
+      config.externals = [...(config.externals || []), 
+        'mammoth', 
+        'pdf-parse'
+      ];
+    }
+
     return config;
   },
+  // Optimize output for serverless deployment
+  output: 'standalone',
 }
 
 module.exports = nextConfig 
