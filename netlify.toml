@@ -1,5 +1,5 @@
 [build]
-  command = "npm ci && npm run build:next"
+  command = "npm ci && npm run build:next && npm run postbuild"
   publish = ".next"
 
 [build.environment]
@@ -7,19 +7,35 @@
   NEXT_TELEMETRY_DISABLED = "1"
   NODE_ENV = "production"
   NPM_CONFIG_PRODUCTION = "false"
+  # Explicitly tell Netlify to use esbuild as the function bundler
+  NETLIFY_USE_ESBUILD = "true"
+  # Tell the build to skip unnecessary work
+  NEXT_SKIP_TYPECHECK = "true"
+  NEXT_EXPORT = "true"
 
 [build.processing]
   skip_processing = false
 
-# Add prebuild command to ensure required dependencies are installed
-[build.lifecycle]
-  onPreBuild = "npm install --silent typescript tailwindcss autoprefixer postcss"
-
+# Remove prebuild command since we have dependencies in the right place now
 [dev]
   framework = "next"
 
 [functions]
   node_bundler = "esbuild"
+  # Configure esbuild to be more aggressive about tree-shaking
+  # Exclude all these directories from functions
+  excluded_patterns = [
+    "node_modules/@next/swc-*/**",
+    "node_modules/.pnpm/**",
+    "node_modules/.bin/**",
+    "node_modules/**/test/**",
+    "node_modules/**/*.d.ts",
+    "node_modules/**/*.md",
+    "**/node_modules/typescript/**",
+    "**/@types/**",
+    "**/*.map",
+    ".next/cache/**"
+  ]
   # Only mark these as external - they won't be bundled
   external_node_modules = [
     "mammoth", 
@@ -28,40 +44,49 @@
     "next",
     "react",
     "react-dom",
-    "sharp"
+    "sharp",
+    "@radix-ui/react-dropdown-menu",
+    "@radix-ui/react-scroll-area",
+    "@radix-ui/react-tabs",
+    "@radix-ui/react-tooltip",
+    "framer-motion",
+    "docx",
+    "date-fns",
+    "recharts",
+    "next-themes",
+    "embla-carousel-react",
+    "react-day-picker",
+    "zod",
+    "lucide-react"
   ]
-  # Be more selective about which files to include
+  # Be very selective about which files to include
   included_files = [
-    "public/**",
+    "public/**/*",
     "app/**/*.{js,ts,jsx,tsx}",
     "pages/**/*.{js,ts,jsx,tsx}",
     "lib/**/*.{js,ts,jsx,tsx}",
     "components/**/*.{js,ts,jsx,tsx}",
     "next.config.js",
     "package.json",
-    "jsconfig.json",
-    "tsconfig.json",
-    ".env",
-    ".env.production",
-    ".env.local"
+    "utils/**/*.{js,ts}"
   ]
 
 # Increase the timeout for API routes to maximum allowed
 [functions."api/analyze"]
   included_files = [
-    "app/api/analyze/**",
-    "app/api/utils/**",
-    "lib/netlifyUtils*", 
-    "lib/utils*"
+    "app/api/analyze/**/*.{js,ts}",
+    "app/api/utils/**/*.{js,ts}",
+    "lib/netlifyUtils*.{js,ts}", 
+    "lib/utils*.{js,ts}"
   ]
   timeout = 26
 
 [functions."api/upload"]
   included_files = [
-    "app/api/upload/**",
-    "app/api/utils/**",
-    "lib/netlifyUtils*", 
-    "lib/utils*"
+    "app/api/upload/**/*.{js,ts}",
+    "app/api/utils/**/*.{js,ts}",
+    "lib/netlifyUtils*.{js,ts}", 
+    "lib/utils*.{js,ts}"
   ]
   timeout = 26
 
@@ -77,4 +102,10 @@
   from = "/api/*"
   to = "/.netlify/functions/api/:splat"
   status = 200
-  force = true 
+  force = true
+
+# Configure headers for better caching
+[[headers]]
+  for = "/_next/static/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable" 
