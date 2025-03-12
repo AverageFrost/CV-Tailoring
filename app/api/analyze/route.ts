@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getFiles, storeResults, extractTextFromBuffer, sessionExists } from '@/lib/netlifyUtils';
+// Import from local utils directory as a fallback
+import * as NetlifyUtils from '../utils/netlifyUtils';
+// Destructure what we need
+const { getFiles, storeResults, extractTextFromBuffer, sessionExists } = NetlifyUtils;
 import Anthropic from '@anthropic-ai/sdk';
 
 // Initialize Anthropic client

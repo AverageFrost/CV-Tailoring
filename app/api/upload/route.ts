@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createSession, storeFiles } from '@/lib/netlifyUtils';
+// Import from local utils directory as a fallback
+import * as NetlifyUtils from '../utils/netlifyUtils';
+// Destructure what we need
+const { createSession, storeFiles } = NetlifyUtils;
 
 // Ensure the route is dynamic to properly handle abort signals
 export const dynamic = 'force-dynamic';

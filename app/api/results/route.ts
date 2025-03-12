@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getResults, sessionExists } from '@/lib/netlifyUtils';
+// Import from local utils directory as a fallback
+import * as NetlifyUtils from '../utils/netlifyUtils';
+// Destructure what we need
+const { getResults, sessionExists } = NetlifyUtils;
 
 // Ensure the route is dynamic
 export const dynamic = 'force-dynamic';
