@@ -3,7 +3,7 @@
   publish = ".next"
 
 [build.environment]
-  NODE_VERSION = "18.17.1"
+  NODE_VERSION = "18.18.0"
   NEXT_TELEMETRY_DISABLED = "1"
 
 [build.processing]
@@ -11,7 +11,7 @@
 
 # Add prebuild command to ensure TypeScript is installed
 [build.lifecycle]
-  onPreBuild = "npm install --silent typescript"
+  onPreBuild = "npm install --silent typescript && npx tsc --version"
 
 [dev]
   framework = "next"

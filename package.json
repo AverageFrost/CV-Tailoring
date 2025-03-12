@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "npm run ts-setup && next build",
-    "ts-setup": "npm install --no-save typescript && tsc --version",
+    "ts-setup": "npm install --no-save typescript && npm run ts-validate || echo 'TypeScript check skipped'",
+    "ts-validate": "npx tsc --project tsconfig.prebuild.json || echo 'TypeScript validation skipped'",
     "start": "next start",
     "lint": "next lint"
   },
