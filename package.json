@@ -4,9 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "npm run ts-setup && next build",
-    "ts-setup": "npm install --no-save typescript && npm run ts-validate || echo 'TypeScript check skipped'",
-    "ts-validate": "npx tsc --project tsconfig.prebuild.json || echo 'TypeScript validation skipped'",
+    "build": "npm ci && npm run build:next",
+    "build:next": "next build",
     "start": "next start",
     "lint": "next lint"
   },
