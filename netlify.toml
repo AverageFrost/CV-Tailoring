@@ -1,18 +1,19 @@
 [build]
-  command = "npm ci && npm run build:next"
+  command = "npm ci && npm install -g postcss tailwindcss && npm run build:next"
   publish = ".next"
 
 [build.environment]
   NODE_VERSION = "18.18.0"
   NEXT_TELEMETRY_DISABLED = "1"
   NODE_ENV = "production"
+  NPM_CONFIG_PRODUCTION = "false"
 
 [build.processing]
   skip_processing = false
 
-# Add prebuild command to ensure TypeScript is installed
+# Add prebuild command to ensure required dependencies are installed
 [build.lifecycle]
-  onPreBuild = "npm install --silent typescript && npx tsc --version"
+  onPreBuild = "npm install --silent typescript tailwindcss autoprefixer postcss"
 
 [dev]
   framework = "next"
@@ -33,10 +34,10 @@
 
 # Add deploy context configuration
 [context.production]
-  environment = { NODE_ENV = "production" }
+  environment = { NODE_ENV = "production", NPM_CONFIG_PRODUCTION = "false" }
 
 [context.deploy-preview]
-  environment = { NODE_ENV = "production" }
+  environment = { NODE_ENV = "production", NPM_CONFIG_PRODUCTION = "false" }
 
 # Configure redirects
 [[redirects]]
