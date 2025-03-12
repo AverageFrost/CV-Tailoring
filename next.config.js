@@ -50,7 +50,33 @@ const nextConfig = {
         'formidable',
         'fs-extra',
         'uuid',
-        'critters'
+        'critters',
+        'prismic-javascript',
+        // Externalize all node_modules
+        function(context, request, callback) {
+          if (request.startsWith('node_modules/') || 
+              /node_modules[\\/]/.test(request) ||
+              /^[^.\/]/.test(request)) {
+            return callback(null, `commonjs ${request}`);
+          }
+          callback();
+        },
+      ];
+
+      // Add a rule to reduce size by excluding source maps and unnecessary files
+      config.optimization.minimize = true;
+      config.optimization.minimizer = [
+        ...config.optimization.minimizer || [],
+        new (require('terser-webpack-plugin'))({
+          terserOptions: {
+            compress: true,
+            mangle: true,
+            output: {
+              comments: false,
+            },
+          },
+          extractComments: false,
+        }),
       ];
     }
 
@@ -68,8 +94,8 @@ const nextConfig = {
 
     return config;
   },
-  // Optimize output for serverless deployment
-  // output: 'standalone',  // Comment this out to use standard Next.js build
+  // Serverless option for Netlify
+  target: 'serverless',
   
   // Move outputFileTracingRoot to top level as recommended in the error message
   outputFileTracingRoot: process.env.NODE_ENV === 'production' ? '.' : undefined,
@@ -94,7 +120,10 @@ const nextConfig = {
     // Disable features that increase bundle size
     serverMinification: true,
     serverSourceMaps: false,
-    forceSwcTransforms: true
+    forceSwcTransforms: true,
+    // Better optimization for large dependencies
+    optimizeServerReactComponents: true,
+    nextScriptWorkers: true,
   }
 }
 

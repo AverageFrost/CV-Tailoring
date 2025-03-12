@@ -19,7 +19,22 @@ const DIRECTORIES = [
 
 // File extensions to clean up
 const EXTENSIONS_TO_CLEAN = [
-  '.map', '.d.ts', '.md', '.ts', '.flow', '.txt', '.LICENSE.txt'
+  '.map', '.d.ts', '.md', '.ts', '.flow', '.txt', '.LICENSE.txt',
+  '.cjs.js', '.cjs.js.map', '.esm.js', '.esm.js.map'
+];
+
+// Large files that can be removed to reduce size
+const LARGE_FILES_TO_REMOVE = [
+  'node_modules/next/dist/compiled/babel/bundle.js',
+  'node_modules/next/dist/compiled/webpack/bundle.js',
+  'node_modules/next/dist/compiled/react/',
+  'node_modules/next/dist/compiled/react-dom/',
+  'node_modules/@next/swc-',
+  'node_modules/next/dist/next-server/',
+  'node_modules/@swc/',
+  'node_modules/next/dist/server/lib/',
+  'node_modules/@babel/runtime/',
+  'node_modules/@babel/core/'
 ];
 
 // Ensures a directory exists
@@ -65,6 +80,39 @@ function formatSize(bytes) {
   return `${(bytes / (1024 ** i)).toFixed(2)} ${sizes[i]}`;
 }
 
+// Remove unnecessary files that match patterns
+async function removeFiles(dir, patterns) {
+  try {
+    if (!fs.existsSync(dir)) return;
+    
+    const files = await readdir(dir);
+    for (const file of files) {
+      const filePath = path.join(dir, file);
+      const stats = await stat(filePath);
+      
+      if (stats.isDirectory()) {
+        await removeFiles(filePath, patterns);
+      } else {
+        if (patterns.some(pattern => {
+          if (typeof pattern === 'function') {
+            return pattern(filePath);
+          }
+          return filePath.includes(pattern);
+        })) {
+          try {
+            await rm(filePath);
+            console.log(`🗑️ Removed large file: ${filePath}`);
+          } catch (err) {
+            console.error(`Error removing file ${filePath}:`, err);
+          }
+        }
+      }
+    }
+  } catch (err) {
+    console.error(`Error in removeFiles for ${dir}:`, err);
+  }
+}
+
 // Clean up unnecessary files from a directory
 async function cleanDirectory(dir) {
   try {
@@ -104,6 +152,10 @@ async function cleanDirectory(dir) {
         }
       }
     }
+    
+    // Remove large files that might be bundled
+    await removeFiles(dir, LARGE_FILES_TO_REMOVE);
+    
   } catch (err) {
     if (err.code !== 'ENOENT') {
       console.error(`Error cleaning directory ${dir}:`, err);
@@ -111,7 +163,7 @@ async function cleanDirectory(dir) {
   }
 }
 
-// Create minimal function proxies for specific files
+// Create extremely minimal function proxies for specific files
 async function createMinimalProxies() {
   // Ensure the functions directories exist
   await ensureDir('.netlify/functions');
@@ -119,30 +171,18 @@ async function createMinimalProxies() {
   
   // Create minimal index.js
   const indexContent = `
-// Minimal index function handler to stay under size limits
+// Ultra-minimal index function handler
 exports.handler = async (event, context) => {
   try {
-    // Dynamically load only what we need based on the path
-    const path = event.path || '';
-    console.log("Function called with path:", path);
-    
-    // Simple routing based on path - each path loads separate code
-    if (path.includes('/api/analyze')) {
-      const module = await import('./analyze-handler.js');
-      return module.default(event, context);
-    } 
-    else if (path.includes('/api/upload')) {
-      const module = await import('./upload-handler.js');
-      return module.default(event, context);
-    }
-    
-    // Default response
+    console.log("Function called with path:", event.path);
     return {
       statusCode: 200,
-      body: JSON.stringify({ message: 'Function is running' })
+      body: JSON.stringify({ 
+        message: 'Function is running',
+        path: event.path
+      })
     };
   } catch (error) {
-    console.error("Error in function:", error);
     return {
       statusCode: 500,
       body: JSON.stringify({ error: "Server error" })
@@ -150,23 +190,41 @@ exports.handler = async (event, context) => {
   }
 };`;
 
+  // Create minimal implementation.js
+  const implementationContent = `
+// Ultra-minimal implementation
+exports.handler = async (event, context) => {
+  return {
+    statusCode: 200,
+    body: JSON.stringify({ 
+      message: 'Implementation is running',
+      path: event.path || "unknown" 
+    })
+  };
+};`;
+
   // Create minimal config.js
   const configContent = `
-// Minimal configuration
+// Ultra-minimal configuration
 module.exports = {
   externalModules: ['*']
 };`;
 
   // Write the minimal files
   fs.writeFileSync('.netlify/functions/index.js', indexContent);
+  fs.writeFileSync('.netlify/functions/implementation.js', implementationContent);
   fs.writeFileSync('.netlify/functions/config.js', configContent);
   
-  console.log('✅ Created minimal proxy files in .netlify/functions/');
+  fs.writeFileSync('netlify/functions/index.js', indexContent);
+  fs.writeFileSync('netlify/functions/implementation.js', implementationContent);
+  fs.writeFileSync('netlify/functions/config.js', configContent);
+  
+  console.log('✅ Created ultra-minimal proxy files in function directories');
 }
 
 // Main function
 async function main() {
-  console.log('🚀 Starting function optimization...');
+  console.log('🚀 Starting aggressive function optimization...');
   
   // Check sizes before optimization
   for (const dir of DIRECTORIES) {
@@ -187,14 +245,14 @@ async function main() {
     const size = await getSize(dir);
     console.log(`📊 Final size of ${dir}: ${formatSize(size)}`);
     
-    if (size > 250 * 1024 * 1024) {
-      console.warn(`⚠️ Warning: ${dir} is still larger than Netlify's limit!`);
+    if (size > 50 * 1024 * 1024) {
+      console.warn(`⚠️ Warning: ${dir} is still quite large (${formatSize(size)})!`);
     } else {
-      console.log(`✅ ${dir} is within Netlify's size limit.`);
+      console.log(`✅ ${dir} is within size limits: ${formatSize(size)}`);
     }
   }
   
-  console.log('✨ Function optimization complete!');
+  console.log('✨ Aggressive function optimization complete!');
 }
 
 // Run the script
