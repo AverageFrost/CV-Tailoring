@@ -6,8 +6,8 @@
     "dev": "next dev",
     "build": "npm ci && npm run build:next",
     "build:next": "next build",
-    "postbuild": "node ./scripts/optimize-functions.js && node ./scripts/fix-netlify-files.js",
-    "start": "next start",
+    "postbuild": "node ./scripts/optimize-functions.js && node ./scripts/fix-netlify-files.js && cp server.js .next/standalone/",
+    "start": "node server.js",
     "lint": "next lint"
   },
   "dependencies": {
