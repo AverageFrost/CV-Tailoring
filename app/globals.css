@@ -1,0 +1,271 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 270 31% 24%;
+    --card: 0 0% 100%;
+    --card-foreground: 270 31% 24%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 270 31% 24%;
+
+    /* Primary: #3F2A51 */
+    --primary: 270 31% 24%;
+    --primary-foreground: 270 20% 96%;
+
+    /* Secondary: #AF93C8 */
+    --secondary: 270 35% 68%;
+    --secondary-foreground: 270 31% 24%;
+
+    --muted: 270 20% 96%;
+    --muted-foreground: 270 10% 40%;
+
+    --accent: 270 35% 95%;
+    --accent-foreground: 270 31% 24%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 270 20% 96%;
+
+    --border: 270 20% 90%;
+    --input: 270 20% 90%;
+    --ring: 270 31% 24%;
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 270 31% 10%;
+    --foreground: 270 20% 96%;
+    --card: 270 31% 15%;
+    --card-foreground: 270 20% 96%;
+    --popover: 270 31% 15%;
+    --popover-foreground: 270 20% 96%;
+
+    /* Primary: #3F2A51 (slightly lighter for dark mode) */
+    --primary: 270 31% 35%;
+    --primary-foreground: 270 20% 96%;
+
+    /* Secondary: #AF93C8 */
+    --secondary: 270 35% 68%;
+    --secondary-foreground: 270 31% 15%;
+
+    --muted: 270 31% 20%;
+    --muted-foreground: 270 10% 70%;
+
+    --accent: 270 31% 25%;
+    --accent-foreground: 270 20% 96%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 270 20% 96%;
+
+    --border: 270 31% 25%;
+    --input: 270 31% 25%;
+    --ring: 270 35% 68%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Custom scrollbar styling */
+.scrollbar-thin::-webkit-scrollbar {
+  width: 8px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background-color: rgba(128, 128, 128, 0.3);
+  border-radius: 9999px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(128, 128, 128, 0.5);
+}
+
+/* Apply custom scrollbar to ScrollArea components */
+[data-radix-scroll-area-viewport] > div {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(128, 128, 128, 0.3) transparent;
+}
+
+[data-radix-scroll-area-viewport]::-webkit-scrollbar {
+  width: 8px;
+}
+
+[data-radix-scroll-area-viewport]::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+[data-radix-scroll-area-viewport]::-webkit-scrollbar-thumb {
+  background-color: rgba(128, 128, 128, 0.3);
+  border-radius: 9999px;
+}
+
+[data-radix-scroll-area-viewport]::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(128, 128, 128, 0.5);
+}
+
+/* Fix for file uploader overlapping issues */
+.file-uploader-fix {
+  position: relative;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.file-upload-wrapper {
+  position: relative;
+  z-index: 50;
+  height: 340px !important; /* Enforce exact height */
+  display: flex;
+  overflow: hidden; /* Prevent content from spilling outside */
+}
+
+/* Ensure consistent height for file uploader containers */
+.file-uploader-container {
+  height: 100% !important; 
+  display: flex;
+  flex-direction: column;
+  overflow: hidden; /* Prevent content from spilling outside */
+}
+
+/* When uploader has textarea, adjust to maintain height consistency */
+.file-uploader-container:has(textarea) {
+  height: 100% !important;
+}
+
+/* For containers with both drag target and textarea */
+.file-uploader-container:has([data-drag-target="true"]):has(textarea) [data-drag-target="true"] {
+  height: 140px !important;
+  min-height: 140px !important;
+  flex: 0 0 auto !important;
+}
+
+/* Adjust textarea container height */
+.file-uploader-container:has([data-drag-target="true"]):has(textarea) .mt-3 {
+  height: 140px !important;
+  flex: 0 0 auto !important;
+  margin-top: 0.75rem !important; /* Standard mt-3 */
+}
+
+/* Remove padding-top override to restore alignment */
+.file-uploader-container:has(textarea):has(.file-preview-container) {
+  /* Removed padding-top override */
+}
+
+/* When text is present, adjust the textarea container for full height */
+.file-uploader-container:has(textarea):has(.file-preview-container) .textarea-container {
+  height: 100% !important;
+  flex: 1 1 auto !important;
+}
+
+/* When text is present, adjust the textarea for full height */
+.file-uploader-container:has(textarea):has(.file-preview-container) textarea {
+  height: 100% !important;
+  min-height: 160px !important;
+  max-height: none !important;
+}
+
+/* Adjust the textarea height when in the uploader */
+.file-uploader-container textarea {
+  height: 100px !important;
+  min-height: 0 !important;
+  max-height: 100px !important;
+  resize: none;
+}
+
+/* Textarea container */
+.textarea-container {
+  height: 100px; /* Reduced from 120px */
+  flex: 0 0 auto;
+}
+
+.textarea-fixed-height {
+  height: 100px !important; /* Reduced from 120px */
+}
+
+/* Equal height for all sections */
+.file-uploader-container > div:first-of-type {
+  flex: 1;
+  min-height: 0; /* Allow proper flex behavior */
+}
+
+/* Force consistent height for empty and filled states */
+.file-uploader-container [data-drag-target="true"] {
+  height: 100% !important; /* Use height instead of min-height */
+  min-height: 0 !important; /* Reset min-height */
+}
+
+/* Ensure file preview container has consistent height */
+.file-uploader-container > div > div.file-preview-container {
+  height: 100% !important; /* Use height instead of min-height */
+  min-height: 0 !important; /* Reset min-height */
+}
+
+/* Reset pointer-events for interactive elements */
+.file-uploader-container,
+.file-uploader-container * {
+  pointer-events: auto !important;
+}
+
+input[type="file"] {
+  pointer-events: auto !important;
+  cursor: pointer !important;
+  z-index: 1; /* Ensure it's above the base div but below content */
+}
+
+/* Make sure file upload overlay doesn't interfere with the visual content */
+input[type="file"]::file-selector-button {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  display: none;
+}
+
+/* Override any conflicting styles */
+.pointer-events-none {
+  pointer-events: auto !important;
+}
+
+/* Ensure the drop target is always clickable and fills the space */
+[data-drag-target="true"] {
+  pointer-events: auto !important;
+  cursor: pointer !important;
+  z-index: 100 !important;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  position: relative;
+  user-select: none; /* Prevent unwanted text selection when clicking */
+}
+
+/* Add a subtle hover effect to indicate clickability */
+[data-drag-target="true"]:hover {
+  background-color: rgba(175, 147, 200, 0.05);
+  border-color: rgba(63, 42, 81, 0.3) !important;
+}
+
+/* Add an active effect when clicking */
+[data-drag-target="true"]:active {
+  background-color: rgba(175, 147, 200, 0.1);
+  border-color: rgba(63, 42, 81, 0.4) !important;
+}
+
+/* Prevent any overlays from blocking file input */
+.file-uploader-container:before,
+.file-uploader-container:after {
+  content: none !important;
+}
+
