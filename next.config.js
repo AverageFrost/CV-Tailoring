@@ -94,8 +94,6 @@ const nextConfig = {
 
     return config;
   },
-  // Serverless option for Netlify
-  target: 'serverless',
   
   // Move outputFileTracingRoot to top level as recommended in the error message
   outputFileTracingRoot: process.env.NODE_ENV === 'production' ? '.' : undefined,
@@ -121,8 +119,7 @@ const nextConfig = {
     serverMinification: true,
     serverSourceMaps: false,
     forceSwcTransforms: true,
-    // Better optimization for large dependencies
-    optimizeServerReactComponents: true,
+    // Remove unsupported option
     nextScriptWorkers: true,
   }
 }
