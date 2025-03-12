@@ -10,6 +10,7 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   transpilePackages: ["mammoth", "pdf-parse"],
+  
   webpack: (config, { isServer }) => {
     // Resolve the @/ alias to project root
     config.resolve.alias = {
@@ -52,8 +53,8 @@ const nextConfig = {
         'uuid',
         'critters',
         'prismic-javascript',
-        // Externalize all node_modules
-        function(context, request, callback) {
+        // Externalize all node_modules - updated to new format
+        function({ context, request }, callback) {
           if (request.startsWith('node_modules/') || 
               /node_modules[\\/]/.test(request) ||
               /^[^.\/]/.test(request)) {
@@ -95,8 +96,8 @@ const nextConfig = {
     return config;
   },
   
-  // Move outputFileTracingRoot to top level as recommended in the error message
-  outputFileTracingRoot: process.env.NODE_ENV === 'production' ? '.' : undefined,
+  // Fix outputFileTracingRoot to be absolute
+  outputFileTracingRoot: process.cwd(),
   
   // Minimize the size of the build output
   experimental: {
@@ -115,12 +116,10 @@ const nextConfig = {
       'sonner',
       'vaul'
     ],
-    // Disable features that increase bundle size
+    // Keep only essential experimental features
     serverMinification: true,
     serverSourceMaps: false,
     forceSwcTransforms: true,
-    // Remove unsupported option
-    nextScriptWorkers: true,
   }
 }
 
