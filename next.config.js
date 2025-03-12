@@ -9,9 +9,7 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  experimental: {
-    serverExternalPackages: ["mammoth", "pdf-parse"],
-  },
+  transpilePackages: ["mammoth", "pdf-parse"],
   webpack: (config, { isServer }) => {
     // Resolve the @/ alias to project root
     config.resolve.alias = {
